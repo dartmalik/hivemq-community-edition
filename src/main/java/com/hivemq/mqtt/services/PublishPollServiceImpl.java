@@ -68,7 +68,7 @@ import static com.hivemq.configuration.service.InternalConfigurations.PUBLISH_PO
 @LazySingleton
 public class PublishPollServiceImpl implements PublishPollService {
 
-    
+
     private static final @NotNull Logger log = LoggerFactory.getLogger(PublishPollService.class);
 
     private final @NotNull MessageIDPools messageIDPools;
@@ -93,7 +93,6 @@ public class PublishPollServiceImpl implements PublishPollService {
         this.payloadPersistence = payloadPersistence;
         this.messageDroppedService = messageDroppedService;
         this.sharedSubscriptionService = sharedSubscriptionService;
-        this.singleWriterService = singleWriterService;
     }
 
     /**
