@@ -174,45 +174,24 @@ public class ClientQueueMemoryLocalPersistence implements ClientQueueLocalPersis
         final Messages messages = bucket.computeIfAbsent(queueId, s -> new Messages());
 
         for (final PUBLISH publish : publishes) {
-            final PublishWithRetained publishWithRetained = new PublishWithRetained(publish, retained);
-            if (publish.getQoS() == QoS.AT_MOST_ONCE) {
-                addQos0Publish(queueId, shared, messages, publishWithRetained);
-            } else {
-                final int qos1And2QueueSize = messages.qos1Or2Messages.size() - messages.retainedQos1Or2Messages;
-                if ((qos1And2QueueSize >= max) && !retained) {
-                    if (strategy == QueuedMessagesStrategy.DISCARD) {
-                        logAndDecrementPayloadReference(publish, shared, queueId);
-                        continue;
-                    } else {
-                        final boolean discarded = discardOldest(queueId, shared, messages, false);
-                        if (!discarded) {
-                            //discard this message if no old could be discarded
-                            logAndDecrementPayloadReference(publish, shared, queueId);
-                            continue;
-                        }
-                    }
-                } else if ((messages.retainedQos1Or2Messages >= retainedMessageMax) && retained) {
-                    if (strategy == QueuedMessagesStrategy.DISCARD) {
-                        logAndDecrementPayloadReference(publish, shared, queueId);
-                        continue;
-                    } else {
-                        final boolean discarded = discardOldest(queueId, shared, messages, true);
-                        if (!discarded) {
-                            //discard this message if no old could be discarded
-                            logAndDecrementPayloadReference(publish, shared, queueId);
-                            continue;
-                        }
-                    }
-                } else {
-                    if (retained) {
-                        messages.retainedQos1Or2Messages++;
-                    }
-                }
+            addInMessages(queueId, shared, publish, max, strategy, retained, messages);
+        }
+    }
 
-                publishWithRetained.setPacketIdentifier(NO_PACKET_ID);
-                messages.qos1Or2Messages.add(publishWithRetained);
-                increaseMessagesMemory(publishWithRetained.getEstimatedSize());
-            }
+    private void addInMessages(
+            final @NotNull String queueId,
+            final boolean shared,
+            final @NotNull PUBLISH publish,
+            final long max,
+            final @NotNull QueuedMessagesStrategy strategy,
+            final boolean retained,
+            final @NotNull Messages messages
+    ) {
+        final PublishWithRetained publishWithRetained = new PublishWithRetained(publish, retained);
+        if (publish.getQoS() == QoS.AT_MOST_ONCE) {
+            addQos0Publish(queueId, shared, messages, publishWithRetained);
+        } else {
+            addQos1Or2Publish(queueId, shared, publish, max, strategy, retained, messages, publishWithRetained);
         }
     }
 
@@ -246,6 +225,50 @@ public class ClientQueueMemoryLocalPersistence implements ClientQueueLocalPersis
         messages.qos0Messages.add(publishWithRetained);
         increaseQos0MessagesMemory(publishWithRetained.getEstimatedSize());
         increaseClientQos0MessagesMemory(messages, publishWithRetained.getEstimatedSize());
+        increaseMessagesMemory(publishWithRetained.getEstimatedSize());
+    }
+
+    private void addQos1Or2Publish(final @NotNull String queueId,
+            final boolean shared,
+            final @NotNull PUBLISH publish,
+            final long max,
+            final @NotNull QueuedMessagesStrategy strategy,
+            final boolean retained,
+            final @NotNull Messages messages,
+            final @NotNull PublishWithRetained publishWithRetained) {
+        final int qos1And2QueueSize = messages.qos1Or2Messages.size() - messages.retainedQos1Or2Messages;
+        if ((qos1And2QueueSize >= max) && !retained) {
+            if (strategy == QueuedMessagesStrategy.DISCARD) {
+                logAndDecrementPayloadReference(publish, shared, queueId);
+                return;
+            } else {
+                final boolean discarded = discardOldest(queueId, shared, messages, false);
+                if (!discarded) {
+                    //discard this message if no old could be discarded
+                    logAndDecrementPayloadReference(publish, shared, queueId);
+                    return;
+                }
+            }
+        } else if ((messages.retainedQos1Or2Messages >= retainedMessageMax) && retained) {
+            if (strategy == QueuedMessagesStrategy.DISCARD) {
+                logAndDecrementPayloadReference(publish, shared, queueId);
+                return;
+            } else {
+                final boolean discarded = discardOldest(queueId, shared, messages, true);
+                if (!discarded) {
+                    //discard this message if no old could be discarded
+                    logAndDecrementPayloadReference(publish, shared, queueId);
+                    return;
+                }
+            }
+        } else {
+            if (retained) {
+                messages.retainedQos1Or2Messages++;
+            }
+        }
+
+        publishWithRetained.setPacketIdentifier(NO_PACKET_ID);
+        messages.qos1Or2Messages.add(publishWithRetained);
         increaseMessagesMemory(publishWithRetained.getEstimatedSize());
     }
 
