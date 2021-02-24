@@ -18,13 +18,11 @@ package com.hivemq.persistence;
 import com.google.common.annotations.VisibleForTesting;
 import com.hivemq.configuration.service.InternalConfigurations;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
-import org.jctools.queues.MpscUnboundedArrayQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Daniel Krüger
@@ -47,8 +45,6 @@ public class InMemorySingleWriter implements SingleWriterService {
     private final @NotNull InMemoryProducerQueues @NotNull [] producers = new InMemoryProducerQueues[AMOUNT_OF_PRODUCERS];
     private final @NotNull InMemoryProducerQueues callbackProducerQueue;
 
-    public final @NotNull MpscUnboundedArrayQueue<Runnable> @NotNull [] queues;
-    public final @NotNull AtomicInteger @NotNull [] wips;
 
     private final int persistenceBucketCount;
 
@@ -65,12 +61,7 @@ public class InMemorySingleWriter implements SingleWriterService {
         }
         callbackProducerQueue = new InMemoryProducerQueues(this, amountOfQueues);
 
-        queues = new MpscUnboundedArrayQueue[amountOfQueues];
-        wips = new AtomicInteger[amountOfQueues];
-        for (int i = 0; i < amountOfQueues; i++) {
-            queues[i] = new MpscUnboundedArrayQueue<>(256);
-            wips[i] = new AtomicInteger();
-        }
+
     }
 
     @VisibleForTesting

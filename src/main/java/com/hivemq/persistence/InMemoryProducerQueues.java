@@ -62,6 +62,9 @@ public class InMemoryProducerQueues implements ProducerQueues {
 
     private @Nullable ListenableFuture<Void> closeFuture;
 
+    public final @NotNull MpscUnboundedArrayQueue<Runnable> @NotNull [] queues;
+    public final @NotNull AtomicInteger @NotNull [] wips;
+
     private final long shutdownGracePeriod;
     private long shutdownStartTime = Long.MAX_VALUE; // Initialized as long max value, to ensure the the grace period condition is not met, when shutdown is true but the start time is net yet set.
 
@@ -75,6 +78,14 @@ public class InMemoryProducerQueues implements ProducerQueues {
 
         final ImmutableList.Builder<ImmutableList<Integer>> bucketIndexListBuilder = ImmutableList.builder();
         final ImmutableList.Builder<AtomicLong> counterBuilder = ImmutableList.builder();
+
+        queues = new MpscUnboundedArrayQueue[amountOfQueues];
+        wips = new AtomicInteger[amountOfQueues];
+        for (int i = 0; i < amountOfQueues; i++) {
+            queues[i] = new MpscUnboundedArrayQueue<>(32);
+            wips[i] = new AtomicInteger();
+        }
+
 
         for (int i = 0; i < amountOfQueues; i++) {
             counterBuilder.add(new AtomicLong(0));
@@ -130,8 +141,8 @@ public class InMemoryProducerQueues implements ProducerQueues {
             resultFuture = null;
         }
 
-        final MpscUnboundedArrayQueue<Runnable> queue = inMemorySingleWriter.queues[queueIndex];
-        final AtomicInteger wip = inMemorySingleWriter.wips[queueIndex];
+        final MpscUnboundedArrayQueue<Runnable> queue = queues[queueIndex];
+        final AtomicInteger wip = wips[queueIndex];
         queue.offer(() -> {
             try {
                 final R result = task.doTask(bucketIndex, queueBucketIndexes.get(queueIndex), queueIndex);
@@ -151,6 +162,11 @@ public class InMemoryProducerQueues implements ProducerQueues {
             }
         });
 
+        // here is the big difference between the the ProducerQueueImpl and the InMemoryProducerQueue
+        // 1. test, whether another thread is already accessing the bucket (wip would be !=0)
+        // true: add the task into the queue; false: access the bucket and work
+        // 2. Consume the Queue
+        // 3.
         if (wip.getAndIncrement() == 0) {
             int missed = 1;
             do {
