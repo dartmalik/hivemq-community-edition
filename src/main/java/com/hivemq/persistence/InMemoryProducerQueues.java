@@ -91,7 +91,7 @@ public class InMemoryProducerQueues implements ProducerQueues {
             counterBuilder.add(new AtomicLong(0));
             bucketIndexListBuilder.add(createBucketIndexes(i, bucketsPerQueue));
         }
-        @NotNull final ImmutableList<AtomicLong> queueTaskCounter = counterBuilder.build();
+        final @NotNull ImmutableList<AtomicLong> queueTaskCounter = counterBuilder.build();
         queueBucketIndexes = bucketIndexListBuilder.build();
     }
 
@@ -104,7 +104,7 @@ public class InMemoryProducerQueues implements ProducerQueues {
         return builder.build();
     }
 
-    public <R> @NotNull ListenableFuture<R> submit(@NotNull final String key, @NotNull final Task<R> task) {
+    public <R> @NotNull ListenableFuture<R> submit(final @NotNull String key, final @NotNull Task<R> task) {
         //noinspection ConstantConditions (future is never null if the callbacks are null)
         return submit(getBucket(key), task, null, null);
     }
@@ -117,19 +117,19 @@ public class InMemoryProducerQueues implements ProducerQueues {
 
 
     public <R> @Nullable ListenableFuture<R> submit(final int bucketIndex,
-                                          @NotNull final Task<R> task,
-                                          @Nullable final SingleWriterService.SuccessCallback<R> successCallback,
-                                          @Nullable final SingleWriterService.FailedCallback failedCallback) {
+                                                    final @NotNull Task<R> task,
+                                                    @Nullable final SingleWriterService.SuccessCallback<R> successCallback,
+                                                    @Nullable final SingleWriterService.FailedCallback failedCallback) {
 
         return submit(bucketIndex, task, successCallback, failedCallback, false);
     }
 
 
     private <R> @Nullable ListenableFuture<R> submit(final int bucketIndex,
-                                           @NotNull final Task<R> task,
-                                           @Nullable final SingleWriterService.SuccessCallback<R> successCallback,
-                                           @Nullable final SingleWriterService.FailedCallback failedCallback,
-                                           final boolean ignoreShutdown) {
+                                                     final @NotNull Task<R> task,
+                                                     @Nullable final SingleWriterService.SuccessCallback<R> successCallback,
+                                                     @Nullable final SingleWriterService.FailedCallback failedCallback,
+                                                     final boolean ignoreShutdown) {
         if (!ignoreShutdown && shutdown.get() && System.currentTimeMillis() - shutdownStartTime > shutdownGracePeriod) {
             return SettableFuture.create(); // Future will never return since we are shutting down.
         }
@@ -213,7 +213,7 @@ public class InMemoryProducerQueues implements ProducerQueues {
     }
 
 
-    public int getBucket(@NotNull final String key) {
+    public int getBucket(final @NotNull String key) {
         return BucketUtils.getBucket(key, inMemorySingleWriter.getPersistenceBucketCount());
     }
 
