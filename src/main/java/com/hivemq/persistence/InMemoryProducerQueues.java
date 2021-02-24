@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.hivemq.persistence.SingleWriterServiceImpl.Task;
+import static com.hivemq.persistence.SingleWriterService.Task;
 
 
 /**
@@ -47,14 +47,14 @@ import static com.hivemq.persistence.SingleWriterServiceImpl.Task;
  * by the thread that is currently working in the bucket. This way the access is single-threaded, non-blocking and context switches are
  * avoided.
  */
-public class InMemoryProducerQueuesImpl implements ProducerQueues {
+public class InMemoryProducerQueues implements ProducerQueues {
 
     private final int amountOfQueues;
 
     @VisibleForTesting
     final int bucketsPerQueue;
 
-    private final @NotNull InMemorySingleWriterImpl inMemorySingleWriter;
+    private final @NotNull InMemorySingleWriter inMemorySingleWriter;
 
     private final @NotNull ImmutableList<ImmutableList<Integer>> queueBucketIndexes;
 
@@ -65,7 +65,7 @@ public class InMemoryProducerQueuesImpl implements ProducerQueues {
     private final long shutdownGracePeriod;
     private long shutdownStartTime = Long.MAX_VALUE; // Initialized as long max value, to ensure the the grace period condition is not met, when shutdown is true but the start time is net yet set.
 
-    public InMemoryProducerQueuesImpl(final @NotNull InMemorySingleWriterImpl singleWriterService, final int amountOfQueues) {
+    public InMemoryProducerQueues(final @NotNull InMemorySingleWriter singleWriterService, final int amountOfQueues) {
         this.inMemorySingleWriter = singleWriterService;
 
         final int bucketCount = inMemorySingleWriter.getPersistenceBucketCount();

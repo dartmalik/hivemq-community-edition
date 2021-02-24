@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * The advantage is that there are less thread switches (resulting in context switches).
  * The requirement is that no submitted task is blocking (that is only true for in-memory persistences)
  */
-public class InMemorySingleWriterImpl implements SingleWriterService {
+public class InMemorySingleWriter implements SingleWriterService {
 
     private static final @NotNull Logger log = LoggerFactory.getLogger(SingleWriterServiceImpl.class);
 
@@ -44,8 +44,8 @@ public class InMemorySingleWriterImpl implements SingleWriterService {
     private static final int QUEUED_MESSAGES_QUEUE_INDEX = 3;
     private static final int ATTRIBUTE_STORE_QUEUE_INDEX = 4;
 
-    private final @NotNull InMemoryProducerQueuesImpl @NotNull [] producers = new InMemoryProducerQueuesImpl[AMOUNT_OF_PRODUCERS];
-    private final @NotNull InMemoryProducerQueuesImpl callbackProducerQueue;
+    private final @NotNull InMemoryProducerQueues @NotNull [] producers = new InMemoryProducerQueues[AMOUNT_OF_PRODUCERS];
+    private final @NotNull InMemoryProducerQueues callbackProducerQueue;
 
     public final @NotNull MpscUnboundedArrayQueue<Runnable> @NotNull [] queues;
     public final @NotNull AtomicInteger @NotNull [] wips;
@@ -53,7 +53,7 @@ public class InMemorySingleWriterImpl implements SingleWriterService {
     private final int persistenceBucketCount;
 
     @Inject
-    public InMemorySingleWriterImpl() {
+    public InMemorySingleWriter() {
 
         persistenceBucketCount = InternalConfigurations.PERSISTENCE_BUCKET_COUNT.get();
         final int threadPoolSize = InternalConfigurations.SINGLE_WRITER_THREAD_POOL_SIZE.get();
@@ -61,9 +61,9 @@ public class InMemorySingleWriterImpl implements SingleWriterService {
         final int amountOfQueues = validAmountOfQueues(threadPoolSize, persistenceBucketCount);
 
         for (int i = 0; i < producers.length; i++) {
-            producers[i] = new InMemoryProducerQueuesImpl(this, amountOfQueues);
+            producers[i] = new InMemoryProducerQueues(this, amountOfQueues);
         }
-        callbackProducerQueue = new InMemoryProducerQueuesImpl(this, amountOfQueues);
+        callbackProducerQueue = new InMemoryProducerQueues(this, amountOfQueues);
 
         queues = new MpscUnboundedArrayQueue[amountOfQueues];
         wips = new AtomicInteger[amountOfQueues];
