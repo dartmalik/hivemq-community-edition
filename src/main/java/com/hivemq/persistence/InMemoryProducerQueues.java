@@ -166,7 +166,10 @@ public class InMemoryProducerQueues implements ProducerQueues {
         // 1. test, whether another thread is already accessing the bucket (wip would be !=0)
         // true: add the task into the queue; false: access the bucket and work
         // 2. Consume the Queue
-        // 3.
+        // 3. Double check,
+        //    first check: queue empty?, if true get out of the inner loop, else keep on consuming
+        //    second check: check again whether another thread has queued a task meanwhile. If yes, return to work and consume the queue.
+        //    these two checks are necessary, because queue poll/add and wip increase/decrease are not atomic
         if (wip.getAndIncrement() == 0) {
             int missed = 1;
             do {
