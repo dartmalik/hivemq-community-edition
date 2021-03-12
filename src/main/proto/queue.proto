@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package com.hivemq.cluster.rpc;
+
+option java_multiple_files = true;
+
+message MqttUserPropertyModel {
+    string name = 1;
+    string value = 2;
+}
+
+message MqttUserPropertiesModel {
+    repeated MqttUserPropertyModel userProperties = 1;
+}
+
+message PublishModel {
+    string hivemqId                         = 1;
+    string topic                            = 2;
+    bytes payload                           = 3;
+    int32 qos                               = 4;
+    bool isRetain                           = 5;
+    int64 messageExpiryInterval             = 6;
+    int32 payloadFormatIndicator            = 7;
+    string contentType                      = 8;
+    string responseTopic                    = 9;
+    bytes correlationData                   = 10;
+    MqttUserPropertiesModel userProperties  = 11;
+    int32 packetId                          = 12;
+    bool isDup                              = 13;
+    bool isNewTopicAlias                    = 14;
+    repeated int32 subscriptionIdentifiers  = 15;
+    int64 timestamp                         = 16;
+    int64 publishId                         = 17;
+}
+
+message AddMessageRequest {
+    string queueId                  = 1;
+    bool shared                     = 2;
+    repeated PublishModel published = 3;
+    bool retained                   = 4;
+    int64 queueLimit                = 5;
+}
+
+message AddMessageResponse {
+}
+
+service QueuePersistenceService {
+    rpc add(AddMessageRequest) returns (AddMessageResponse);
+}

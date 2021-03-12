@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package com.hivemq.cluster.rpc;
+
+option java_multiple_files = true;
+
+message TopicModel {
+    string topic            = 1;
+    int32 qos               = 2;
+    bool noLocal            = 3;
+    bool retainAsPublished  = 4;
+    int32 retainHandling    = 5;
+    int32 subscriptionId    = 6;
+    int32 sizeInMemory      = 7;
+}
+
+message SubscriptionResultModel {
+    TopicModel topic                = 1;
+    bool subscriptionAlreadyExisted = 2;
+    string shareName                = 3;
+}
+
+message AddSubscriptionsRequest {
+    string client = 1;
+    repeated TopicModel topic = 2;
+}
+
+message AddSubscriptionsResponse {
+    repeated SubscriptionResultModel results = 1;
+}
+
+message GetSubscriptionsRequest {
+    string client = 1;
+}
+
+message GetSubscriptionsResponse {
+    repeated TopicModel topics = 1;
+}
+
+message RemoveSubscriptionsRequest {
+    string client = 1;
+    repeated TopicModel topic = 2;
+}
+
+message RemoveSubscriptionsResponse {
+}
+
+service SubscriptionService {
+    rpc addSubscriptions(AddSubscriptionsRequest) returns (AddSubscriptionsResponse);
+
+    rpc getSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+
+    rpc removeSubscriptions(RemoveSubscriptionsRequest) returns (RemoveSubscriptionsResponse);
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package com.hivemq.cluster.rpc;
+
+option java_multiple_files = true;
+
+message ForceDisconnectClientRequest {
+    string clientId = 1;
+    bool preventLwtMessage = 2;
+    int32 disconnectSource = 3;
+}
+
+message ForceDisconnectClientResponse {
+    bool status = 1;
+}
+
+service SessionPersistenceService {
+    rpc forceDisconnectClient(ForceDisconnectClientRequest) returns (ForceDisconnectClientResponse);
+}
