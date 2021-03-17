@@ -4,14 +4,18 @@ package com.hivemq.cluster.rpc;
 
 option java_multiple_files = true;
 
+message Int32Wrapper {
+    int32 value = 1;
+}
+
 message TopicModel {
-    string topic            = 1;
-    int32 qos               = 2;
-    bool noLocal            = 3;
-    bool retainAsPublished  = 4;
-    int32 retainHandling    = 5;
-    int32 subscriptionId    = 6;
-    int32 sizeInMemory      = 7;
+    string topic                = 1;
+    int32 qos                   = 2;
+    bool noLocal                = 3;
+    bool retainAsPublished      = 4;
+    int32 retainHandling        = 5;
+    Int32Wrapper subscriptionId = 6;
+    int32 sizeInMemory          = 7;
 }
 
 message SubscriptionResultModel {
@@ -45,7 +49,7 @@ message RemoveSubscriptionsRequest {
 message RemoveSubscriptionsResponse {
 }
 
-service SubscriptionService {
+service SubscriptionPersistenceService {
     rpc addSubscriptions(AddSubscriptionsRequest) returns (AddSubscriptionsResponse);
 
     rpc getSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);

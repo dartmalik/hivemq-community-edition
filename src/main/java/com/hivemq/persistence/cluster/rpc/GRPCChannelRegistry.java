@@ -12,7 +12,7 @@ public class GRPCChannelRegistry {
     private final Map<String, ManagedChannel> channelMap = new ConcurrentHashMap<>();
 
     public ManagedChannel get(final String address, final int port) {
-        return channelMap.computeIfAbsent(address,
+        return channelMap.computeIfAbsent(address+ ":" + port,
                 key -> ManagedChannelBuilder.forAddress(address, port).usePlaintext().build());
     }
 

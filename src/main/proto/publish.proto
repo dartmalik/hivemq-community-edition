@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.hivemq.cluster.rpc;
+
+option java_multiple_files = true;
+
+import "queue.proto";
+
+message PublishRequest {
+    PublishModel publish = 1;
+    string sender        = 2;
+}
+
+message PublishResponse {
+    int32 code = 1;
+}
+
+service PublishService {
+    rpc publish(PublishRequest) returns (PublishResponse);
+}

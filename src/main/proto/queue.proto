@@ -33,6 +33,22 @@ message PublishModel {
     int64 publishId                         = 17;
 }
 
+message DummyMessageWithIdModel {
+    int32 packetId = 1;
+    int32 type = 2;
+    int32 encodedLength = 3;
+    int32 remainingLength = 4;
+    int32 propertyLength = 5;
+    int32 omittedProperties = 6;
+}
+
+message MessageWithIdModel {
+    oneof payload {
+        PublishModel publish          = 1;
+        DummyMessageWithIdModel dummy = 2;
+    }
+}
+
 message AddMessageRequest {
     string queueId                  = 1;
     bool shared                     = 2;
@@ -42,8 +58,81 @@ message AddMessageRequest {
 }
 
 message AddMessageResponse {
+    int32 size = 1;
 }
+
+message ReadNewRequest {
+    string queueId           = 1;
+    bool shared              = 2;
+    repeated int32 packetIds = 3;
+    int64 byteLimit          = 4;
+}
+
+message ReadNewResponse {
+    repeated PublishModel publishes = 1;
+}
+
+message ReadInflightRequest {
+    string client      = 1;
+    int64 byteLimit    = 2;
+    int32 messageLimit = 3;
+}
+
+message ReadInflightResponse {
+    repeated MessageWithIdModel messages = 1;
+}
+
+message RemoveRequest {
+    string clientId = 1;
+    int32 packetId  = 2;
+}
+
+message RemoveResponse {}
+
+message PutPubrelRequest {
+    string clientId = 1;
+    int32 packetId = 2;
+}
+
+message PutPubrelResponse {}
+
+message ClearRequest {
+    string queueId = 1;
+    bool shared    = 2;
+}
+
+message ClearResponse {}
+
+message SizeRequest {
+    string queueId = 1;
+    bool shared = 2;
+}
+
+message SizeResponse {
+    int32 size = 1;
+}
+
+message RemoveAllQos0MessagesRequest {
+    string queueId = 1;
+    bool shared    = 2;
+}
+
+message RemoveAllQos0MessagesResponse {}
+
+message PublishAvailableRequest {
+    string clientId = 1;
+}
+
+message PublishAvailableResponse {}
 
 service QueuePersistenceService {
     rpc add(AddMessageRequest) returns (AddMessageResponse);
+    rpc readNew(ReadNewRequest) returns (ReadNewResponse);
+    rpc readInflight(ReadInflightRequest) returns (ReadInflightResponse);
+    rpc remove(RemoveRequest) returns (RemoveResponse);
+    rpc putPubrel(PutPubrelRequest) returns (PutPubrelResponse);
+    rpc clear(ClearRequest) returns (ClearResponse);
+    rpc size(SizeRequest) returns (SizeResponse);
+    rpc removeAllQos0Messages(RemoveAllQos0MessagesRequest) returns (RemoveAllQos0MessagesResponse);
+    rpc publishAvailable(PublishAvailableRequest) returns (PublishAvailableResponse);
 }

@@ -135,6 +135,18 @@ public class InfinispanAddressRegistry implements AddressRegistry {
     }
 
     @Override
+    public CompletableFuture<Record> getOrReplace(final Address address, final Record record, final long ttlSeconds) {
+        final RegistryKey key = new RegistryKey(address, record);
+
+        final Gson gson = new Gson();
+
+        final String value = gson.toJson(record);
+
+        return entries.putIfAbsentAsync(key.toString(), value, ttlSeconds, TimeUnit.SECONDS)
+                    .thenApply(oldValue -> Objects.nonNull(oldValue) ? gson.fromJson(oldValue, Record.class): record);
+    }
+
+    @Override
     public CompletableFuture<Void> remove(@NotNull final Address address, @NotNull final Record record) {
         final RegistryKey key = new RegistryKey(address, record);
 
