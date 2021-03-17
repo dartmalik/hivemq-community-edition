@@ -17,6 +17,8 @@ package com.hivemq.mqtt.ioc;
 
 import com.hivemq.bootstrap.ioc.SingletonModule;
 import com.hivemq.bootstrap.ioc.lazysingleton.LazySingleton;
+import com.hivemq.cluster.InternalClusteredPublishServiceImpl;
+import com.hivemq.cluster.rpc.PublishServiceGrpc;
 import com.hivemq.limitation.TopicAliasLimiter;
 import com.hivemq.limitation.TopicAliasLimiterImpl;
 import com.hivemq.mqtt.services.*;
@@ -33,7 +35,13 @@ public class MQTTServiceModule extends SingletonModule {
     @Override
     protected void configure() {
 
-        bind(InternalPublishService.class).to(InternalPublishServiceImpl.class);
+        //bind(InternalPublishService.class).to(InternalPublishServiceImpl.class);
+
+        bind(InternalClusteredPublishServiceImpl.class).in(LazySingleton.class);
+        bind(InternalPublishService.class).to(InternalClusteredPublishServiceImpl.class);
+        bind(PublishServiceGrpc.PublishServiceImplBase.class).to(InternalClusteredPublishServiceImpl.class);
+
+
         bind(PublishDistributor.class).to(PublishDistributorImpl.class);
 
         bind(TopicAliasLimiter.class).to(TopicAliasLimiterImpl.class);

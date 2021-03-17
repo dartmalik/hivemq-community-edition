@@ -2,15 +2,12 @@ package com.hivemq.cluster.persistence;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hivemq.bootstrap.ioc.lazysingleton.LazySingleton;
 import com.hivemq.cluster.ClusteringService;
 import com.hivemq.cluster.rpc.*;
 import com.hivemq.configuration.service.MqttConfigurationService;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
-import com.hivemq.extension.sdk.api.annotations.Nullable;
 import com.hivemq.mqtt.message.MessageWithID;
 import com.hivemq.mqtt.message.dropping.MessageDroppedService;
 import com.hivemq.mqtt.message.publish.PUBLISH;
@@ -36,7 +33,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
+@SuppressWarnings("UnstableApiUsage")
 @LazySingleton
 public class ClusteredClientQueuePersistenceImpl extends ClientQueuePersistenceImpl {
     @LazySingleton
@@ -59,21 +58,22 @@ public class ClusteredClientQueuePersistenceImpl extends ClientQueuePersistenceI
         }
 
         @Override
-        public void add(
-                final AddMessageRequest request,
-                final StreamObserver<AddMessageResponse> responseObserver) {
-            log.debug("grpc:add");
+        public void add(final AddMessageRequest request, final StreamObserver<AddMessageResponse> responseObserver) {
+            final String queueId = request.getQueueId();
+            final boolean shared = request.getShared();
+            final boolean retained = request.getRetained();
+            final long queueLimit = request.getQueueLimit();
 
             final List<PUBLISH> publishes = new ArrayList<>();
             for (final PublishModel model: request.getPublishedList()) {
                 publishes.add(Adapters.adapt(model, payloadPersistence));
             }
 
-            final CompletableFuture<Integer> sizeFetched = localSize(request.getQueueId(), request.getShared());
+            final CompletableFuture<Integer> sizeFetched = localSize(queueId, shared);
 
-            final CompletableFuture<Integer> added = sizeFetched.thenCompose(size ->
-                    localAdd(request.getQueueId(), request.getShared(), publishes, request.getRetained(), request.getQueueLimit())
-                        .thenApply(v -> size)
+            final CompletableFuture<Integer> added = sizeFetched.thenCompose(
+                    size -> localAdd(queueId, shared, publishes, retained, queueLimit)
+                            .thenApply(v -> size)
             );
 
             added.whenComplete((size, ex) -> {
@@ -84,29 +84,153 @@ public class ClusteredClientQueuePersistenceImpl extends ClientQueuePersistenceI
                     responseObserver.onCompleted();
                 }
             });
+        }
 
-            /*
-            final ListenableFuture<Void> added = localQueuePersistence.add(
-                    request.getQueueId(), request.getShared(), publishes, request.getRetained(), request.getQueueLimit()
-            );
+        @Override
+        public void readNew(final ReadNewRequest request, final StreamObserver<ReadNewResponse> responseObserver) {
+            final String queueId = request.getQueueId();
+            final boolean shared = request.getShared();
+            final long byteLimit = request.getByteLimit();
+            final ImmutableIntArray packetIds = ImmutableIntArray.builder()
+                    .addAll(request.getPacketIdsList())
+                    .build();
 
-            Futures.addCallback(
-                    added,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(final Void result) {
-                            responseObserver.onNext(AddMessageResponse.newBuilder().build());
-                            responseObserver.onCompleted();
-                        }
+            final CompletableFuture<ImmutableList<PUBLISH>> read =
+                    adapt(queueId, localQueuePersistence.readNew(queueId, shared, packetIds, byteLimit));
 
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getQueueId())
-            );
-            */
+            read.whenComplete((publishes, ex) -> {
+               if (Objects.isNull(ex)) {
+                   final ReadNewResponse.Builder responseBuilder = ReadNewResponse.newBuilder();
+                   for (final PUBLISH publish: publishes) {
+                       responseBuilder.addPublishes(Adapters.adapt(publish));
+                   }
+                   responseObserver.onNext(responseBuilder.build());
+                   responseObserver.onCompleted();
+               } else {
+                   responseObserver.onError(ex);
+               }
+            });
+        }
+
+        @Override
+        public void readInflight(
+                final ReadInflightRequest request, final StreamObserver<ReadInflightResponse> responseObserver) {
+            final String clientId = request.getClient();
+            final long byteLimit = request.getByteLimit();
+            final int messageLimit = request.getMessageLimit();
+            final CompletableFuture<ImmutableList<MessageWithID>> read =
+                    adapt(clientId, localQueuePersistence.readInflight(clientId, byteLimit, messageLimit));
+
+            read.whenComplete((messages, ex) -> {
+               if (Objects.isNull(ex)) {
+                   final ReadInflightResponse.Builder builder = ReadInflightResponse.newBuilder();
+
+                   for (final MessageWithID message: messages) {
+                       builder.addMessages(Adapters.adapt(message));
+                   }
+
+                   responseObserver.onNext(builder.build());
+                   responseObserver.onCompleted();
+               } else {
+                   responseObserver.onError(ex);
+               }
+            });
+        }
+
+        @Override
+        public void size(final SizeRequest request, final StreamObserver<SizeResponse> responseObserver) {
+            final String queueId = request.getQueueId();
+            final boolean shared = request.getShared();
+
+            final CompletableFuture<Integer> fetched = adapt(queueId, localQueuePersistence.size(queueId, shared));
+
+            fetched.whenComplete((size, ex) -> {
+               if (Objects.isNull(ex)) {
+                   responseObserver.onNext(SizeResponse.newBuilder().setSize(Objects.nonNull(size) ? size : 0).build());
+                   responseObserver.onCompleted();
+               } else {
+                   responseObserver.onError(ex);
+               }
+            });
+        }
+
+        @Override
+        public void removeAllQos0Messages(
+                final RemoveAllQos0MessagesRequest request,
+                final StreamObserver<RemoveAllQos0MessagesResponse> responseObserver) {
+            final String queueId = request.getQueueId();
+            final boolean shared = request.getShared();
+            final CompletableFuture<Void> removed =
+                    adapt(queueId, localQueuePersistence.removeAllQos0Messages(queueId, shared));
+
+            removed.whenComplete((v, ex) -> {
+               if (Objects.isNull(ex)) {
+                   responseObserver.onNext(RemoveAllQos0MessagesResponse.newBuilder().build());
+                   responseObserver.onCompleted();
+               } else {
+                   responseObserver.onError(ex);
+               }
+            });
+        }
+
+        @Override
+        public void publishAvailable(
+                final PublishAvailableRequest request,
+                final StreamObserver<PublishAvailableResponse> responseObserver) {
+            log.debug("grpc:publishAvailable");
+
+            localQueuePersistence.publishAvailable(request.getClientId());
+
+            responseObserver.onNext(PublishAvailableResponse.newBuilder().build());
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void remove(final RemoveRequest request, final StreamObserver<RemoveResponse> responseObserver) {
+            final String clientId = request.getClientId();
+            final int packetId = request.getPacketId();
+            final CompletableFuture<Void> removed = adapt(clientId, localQueuePersistence.remove(clientId, packetId));
+
+            removed.whenComplete((v, ex) -> {
+                if (Objects.isNull(ex)) {
+                    responseObserver.onNext(RemoveResponse.newBuilder().build());
+                    responseObserver.onCompleted();
+                } else {
+                    responseObserver.onError(ex);
+                }
+            });
+        }
+
+        @Override
+        public void putPubrel(final PutPubrelRequest request, final StreamObserver<PutPubrelResponse> responseObserver) {
+            final String clientId = request.getClientId();
+            final int packetId = request.getPacketId();
+            final CompletableFuture<Void> put = adapt(clientId, localQueuePersistence.putPubrel(clientId, packetId));
+
+            put.whenComplete((v, ex) -> {
+                if (Objects.isNull(ex)) {
+                    responseObserver.onNext(PutPubrelResponse.newBuilder().build());
+                    responseObserver.onCompleted();
+                } else {
+                    responseObserver.onError(ex);
+                }
+            });
+        }
+
+        @Override
+        public void clear(final ClearRequest request, final StreamObserver<ClearResponse> responseObserver) {
+            final String queueId = request.getQueueId();
+            final boolean shared = request.getShared();
+            final CompletableFuture<Void> cleared = adapt(queueId, localQueuePersistence.clear(queueId, shared));
+
+            cleared.whenComplete((v, ex) -> {
+                if (Objects.isNull(ex)) {
+                    responseObserver.onNext(ClearResponse.newBuilder().build());
+                    responseObserver.onCompleted();
+                } else {
+                    responseObserver.onError(ex);
+                }
+            });
         }
 
         private CompletableFuture<Integer> localSize(final String queueId, final boolean shared) {
@@ -127,205 +251,12 @@ public class ClusteredClientQueuePersistenceImpl extends ClientQueuePersistenceI
             );
         }
 
-        @Override
-        public void readNew(
-                final ReadNewRequest request,
-                final StreamObserver<ReadNewResponse> responseObserver) {
-            log.debug("grpc:readNew");
-
-            final ImmutableIntArray packetIds = ImmutableIntArray.builder()
-                    .addAll(request.getPacketIdsList())
-                    .build();
-
-            final ListenableFuture<ImmutableList<PUBLISH>> read =
-                    localQueuePersistence.readNew(request.getQueueId(), request.getShared(), packetIds, request.getByteLimit());
-
-            Futures.addCallback(
-                    read,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(final ImmutableList<PUBLISH> publishes) {
-                            final ReadNewResponse.Builder responseBuilder = ReadNewResponse.newBuilder();
-                            for (final PUBLISH publish: publishes) {
-                                responseBuilder.addPublishes(Adapters.adapt(publish));
-                            }
-                            responseObserver.onNext(responseBuilder.build());
-                            responseObserver.onCompleted();
-                        }
-
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getQueueId())
-            );
+        private ExecutorService executor(final String key) {
+            return singleWriterService.callbackExecutor(key);
         }
 
-        @Override
-        public void readInflight(
-                final ReadInflightRequest request,
-                final StreamObserver<ReadInflightResponse> responseObserver) {
-            log.debug("grpc:readInflight");
-
-            final ListenableFuture<ImmutableList<MessageWithID>> read =
-                    localQueuePersistence.readInflight(request.getClient(), request.getByteLimit(), request.getMessageLimit());
-
-            Futures.addCallback(
-                    read,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(final ImmutableList<MessageWithID> messages) {
-                            final ReadInflightResponse.Builder builder = ReadInflightResponse.newBuilder();
-
-                            for (final MessageWithID message: messages) {
-                                builder.addMessages(Adapters.adapt(message));
-                            }
-
-                            responseObserver.onNext(builder.build());
-                            responseObserver.onCompleted();
-                        }
-
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getClient())
-            );
-        }
-
-        @Override
-        public void size(
-                final SizeRequest request,
-                final StreamObserver<SizeResponse> responseObserver) {
-            log.debug("grpc:size");
-
-            final ListenableFuture<Integer> fetched = localQueuePersistence.size(request.getQueueId(), request.getShared());
-
-            Futures.addCallback(fetched, new FutureCallback<>() {
-                @Override
-                public void onSuccess(@Nullable final Integer size) {
-                    responseObserver.onNext(SizeResponse.newBuilder()
-                            .setSize(Objects.nonNull(size) ? size : 0)
-                            .build());
-
-                    responseObserver.onCompleted();
-                }
-
-                @Override
-                public void onFailure(final Throwable t) {
-                    responseObserver.onError(t);
-
-                }
-            }, singleWriterService.callbackExecutor(request.getQueueId()));
-        }
-
-        @Override
-        public void removeAllQos0Messages(
-                final RemoveAllQos0MessagesRequest request,
-                final StreamObserver<RemoveAllQos0MessagesResponse> responseObserver) {
-            final ListenableFuture<Void> removed =
-                    localQueuePersistence.removeAllQos0Messages(request.getQueueId(), request.getShared());
-
-            Futures.addCallback(
-                    removed,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(@Nullable final Void result) {
-                            responseObserver.onNext(RemoveAllQos0MessagesResponse.newBuilder().build());
-                            responseObserver.onCompleted();
-                        }
-
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getQueueId())
-            );
-        }
-
-        @Override
-        public void publishAvailable(
-                final PublishAvailableRequest request,
-                final StreamObserver<PublishAvailableResponse> responseObserver) {
-            log.debug("grpc:publishAvailable");
-
-            localQueuePersistence.publishAvailable(request.getClientId());
-
-            responseObserver.onNext(PublishAvailableResponse.newBuilder().build());
-            responseObserver.onCompleted();
-        }
-
-        @Override
-        public void remove(
-                final RemoveRequest request,
-                final StreamObserver<RemoveResponse> responseObserver) {
-            final ListenableFuture<Void> removed =
-                    localQueuePersistence.remove(request.getClientId(), request.getPacketId());
-
-            Futures.addCallback(
-                    removed,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(@Nullable final Void result) {
-                            responseObserver.onNext(RemoveResponse.newBuilder().build());
-                            responseObserver.onCompleted();
-                        }
-
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getClientId())
-            );
-        }
-
-        @Override
-        public void putPubrel(
-                final PutPubrelRequest request, final StreamObserver<PutPubrelResponse> responseObserver) {
-            final ListenableFuture<Void> put = localQueuePersistence.putPubrel(request.getClientId(), request.getPacketId());
-
-            Futures.addCallback(
-                    put,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(@Nullable final Void result) {
-                            responseObserver.onNext(PutPubrelResponse.newBuilder().build());
-                            responseObserver.onCompleted();
-                        }
-
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getClientId()));
-        }
-
-        @Override
-        public void clear(
-                final ClearRequest request, final StreamObserver<ClearResponse> responseObserver) {
-            final ListenableFuture<Void> cleared = localQueuePersistence.clear(request.getQueueId(), request.getShared());
-
-            Futures.addCallback(
-                    cleared,
-                    new FutureCallback<>() {
-                        @Override
-                        public void onSuccess(@Nullable final Void result) {
-                            responseObserver.onNext(ClearResponse.newBuilder().build());
-                            responseObserver.onCompleted();
-                        }
-
-                        @Override
-                        public void onFailure(final Throwable t) {
-                            responseObserver.onError(t);
-                        }
-                    },
-                    singleWriterService.callbackExecutor(request.getQueueId())
-            );
+        private <T> CompletableFuture<T> adapt(final String key, final ListenableFuture<T> future) {
+            return Adapters.adapt(future, executor(key));
         }
     }
 
