@@ -1,4 +1,4 @@
-package com.hivemq.persistence.cluster.rpc;
+package com.hivemq.cluster.rpc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
@@ -7,7 +7,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.protobuf.ByteString;
-import com.hivemq.cluster.rpc.*;
 import com.hivemq.codec.encoder.mqtt5.Mqtt5PayloadFormatIndicator;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
 import com.hivemq.mqtt.message.MessageType;
@@ -20,7 +19,6 @@ import com.hivemq.mqtt.message.publish.PUBLISH;
 import com.hivemq.mqtt.message.publish.PUBLISHFactory;
 import com.hivemq.mqtt.message.subscribe.Topic;
 import com.hivemq.persistence.clientsession.callback.SubscriptionResult;
-import com.hivemq.persistence.ioc.annotation.PayloadPersistence;
 import com.hivemq.persistence.payload.PublishPayloadPersistence;
 
 import java.util.Objects;

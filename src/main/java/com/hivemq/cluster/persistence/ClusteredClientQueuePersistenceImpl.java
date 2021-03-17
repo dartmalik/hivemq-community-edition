@@ -1,4 +1,4 @@
-package com.hivemq.persistence.cluster;
+package com.hivemq.cluster.persistence;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.ImmutableIntArray;
@@ -6,6 +6,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hivemq.bootstrap.ioc.lazysingleton.LazySingleton;
+import com.hivemq.cluster.ClusteringService;
 import com.hivemq.cluster.rpc.*;
 import com.hivemq.configuration.service.MqttConfigurationService;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
@@ -19,8 +20,8 @@ import com.hivemq.persistence.ChannelPersistence;
 import com.hivemq.persistence.SingleWriterService;
 import com.hivemq.persistence.clientqueue.ClientQueueLocalPersistence;
 import com.hivemq.persistence.clientqueue.ClientQueuePersistenceImpl;
-import com.hivemq.persistence.cluster.rpc.Adapters;
-import com.hivemq.persistence.cluster.rpc.GRPCChannelRegistry;
+import com.hivemq.cluster.rpc.Adapters;
+import com.hivemq.cluster.rpc.GRPCChannelRegistry;
 import com.hivemq.persistence.local.ClientSessionLocalPersistence;
 import com.hivemq.persistence.payload.PublishPayloadPersistence;
 import io.grpc.ManagedChannel;

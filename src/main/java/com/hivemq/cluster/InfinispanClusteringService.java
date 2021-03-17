@@ -1,10 +1,10 @@
-package com.hivemq.persistence.cluster;
+package com.hivemq.cluster;
 
 import com.hivemq.extension.sdk.api.annotations.NotNull;
-import com.hivemq.persistence.cluster.address.Address;
-import com.hivemq.persistence.cluster.address.AddressRegistry;
-import com.hivemq.persistence.cluster.address.Record;
-import com.hivemq.persistence.cluster.address.impl.InfinispanAddressRegistry;
+import com.hivemq.cluster.address.Address;
+import com.hivemq.cluster.address.AddressRegistry;
+import com.hivemq.cluster.address.Record;
+import com.hivemq.cluster.address.impl.InfinispanAddressRegistry;
 
 import org.infinispan.configuration.global.GlobalConfigurationBuilder;
 import org.infinispan.manager.DefaultCacheManager;

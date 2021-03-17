@@ -1,4 +1,4 @@
-package com.hivemq.persistence.cluster.address;
+package com.hivemq.cluster.address;
 
 import com.hivemq.extension.sdk.api.annotations.NotNull;
 

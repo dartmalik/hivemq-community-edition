@@ -1,3 +1,4 @@
+
 plugins {
     id 'java'
     id 'java-library'
@@ -15,6 +16,8 @@ plugins {
     id 'pmd'
     id 'com.github.spotbugs'
     id 'de.thetaphi.forbiddenapis'
+
+    id 'com.google.protobuf'
 }
 
 
@@ -88,6 +91,14 @@ repositories {
 
 dependencies {
     api("com.hivemq:hivemq-extension-sdk:${property('hivemq-extension-sdk.version')}")
+
+    /* cluster */
+    implementation("com.google.api.grpc:proto-google-common-protos:0.1.9")
+    implementation("io.grpc:grpc-netty:${property('grpc.version')}")
+    implementation("io.grpc:grpc-protobuf:${property('grpc.version')}")
+    implementation("io.grpc:grpc-stub:${property('grpc.version')}")
+    implementation("org.infinispan:infinispan-core:${property('infinispan.version')}")
+    implementation("com.google.code.gson:gson:2.8.6")
 
     /* netty */
     implementation("io.netty:netty-buffer:${property('netty.version')}")
@@ -381,6 +392,34 @@ forbiddenApisMain {
 
 forbiddenApisTest.enabled = false
 
+license {
+    ignoreFailures = true
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.4.0'
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${property('grpc.version')}"
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}
 
 /* ******************** compliance ******************** */
 

@@ -1,9 +1,10 @@
-package com.hivemq.persistence.cluster;
+package com.hivemq.cluster.persistence;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.hivemq.bootstrap.ioc.lazysingleton.LazySingleton;
+import com.hivemq.cluster.ClusteringService;
 import com.hivemq.cluster.rpc.ForceDisconnectClientRequest;
 import com.hivemq.cluster.rpc.ForceDisconnectClientResponse;
 import com.hivemq.cluster.rpc.SessionPersistenceServiceGrpc;
@@ -18,8 +19,8 @@ import com.hivemq.persistence.clientsession.ClientSession;
 import com.hivemq.persistence.clientsession.ClientSessionPersistence;
 import com.hivemq.persistence.clientsession.ClientSessionPersistenceImpl;
 import com.hivemq.persistence.clientsession.PendingWillMessages;
-import com.hivemq.persistence.cluster.rpc.Adapters;
-import com.hivemq.persistence.cluster.rpc.GRPCChannelRegistry;
+import com.hivemq.cluster.rpc.Adapters;
+import com.hivemq.cluster.rpc.GRPCChannelRegistry;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;
 

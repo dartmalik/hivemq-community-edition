@@ -1,4 +1,4 @@
-package com.hivemq.persistence.cluster.rpc;
+package com.hivemq.cluster.rpc;
 
 import com.hivemq.bootstrap.ioc.lazysingleton.LazySingleton;
 import io.grpc.ManagedChannel;

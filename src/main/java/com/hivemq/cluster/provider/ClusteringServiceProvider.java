@@ -1,7 +1,7 @@
-package com.hivemq.persistence.cluster.ioc;
+package com.hivemq.cluster.provider;
 
-import com.hivemq.persistence.cluster.ClusteringService;
-import com.hivemq.persistence.cluster.InfinispanClusteringService;
+import com.hivemq.cluster.ClusteringService;
+import com.hivemq.cluster.InfinispanClusteringService;
 
 import javax.inject.Provider;
 

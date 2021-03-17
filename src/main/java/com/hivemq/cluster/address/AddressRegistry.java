@@ -1,4 +1,4 @@
-package com.hivemq.persistence.cluster.address;
+package com.hivemq.cluster.address;
 
 import java.util.Collection;
 import java.util.Set;

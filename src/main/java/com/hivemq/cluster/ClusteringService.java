@@ -1,7 +1,7 @@
-package com.hivemq.persistence.cluster;
+package com.hivemq.cluster;
 
 import com.hivemq.extension.sdk.api.annotations.NotNull;
-import com.hivemq.persistence.cluster.address.AddressRegistry;
+import com.hivemq.cluster.address.AddressRegistry;
 
 import java.net.InetSocketAddress;
 import java.util.Set;

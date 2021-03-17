@@ -1,4 +1,4 @@
-package com.hivemq.mqtt.services;
+package com.hivemq.cluster;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -11,10 +11,11 @@ import com.hivemq.extension.sdk.api.annotations.NotNull;
 import com.hivemq.extension.sdk.api.annotations.Nullable;
 import com.hivemq.mqtt.handler.publish.PublishReturnCode;
 import com.hivemq.mqtt.message.publish.PUBLISH;
+import com.hivemq.mqtt.services.InternalPublishService;
+import com.hivemq.mqtt.services.InternalPublishServiceImpl;
 import com.hivemq.persistence.SingleWriterService;
-import com.hivemq.persistence.cluster.ClusteringService;
-import com.hivemq.persistence.cluster.rpc.Adapters;
-import com.hivemq.persistence.cluster.rpc.GRPCChannelRegistry;
+import com.hivemq.cluster.rpc.Adapters;
+import com.hivemq.cluster.rpc.GRPCChannelRegistry;
 import com.hivemq.persistence.payload.PublishPayloadPersistence;
 import io.grpc.ManagedChannel;
 import io.grpc.stub.StreamObserver;

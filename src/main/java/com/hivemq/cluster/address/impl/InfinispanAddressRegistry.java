@@ -1,11 +1,11 @@
-package com.hivemq.persistence.cluster.address.impl;
+package com.hivemq.cluster.address.impl;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
-import com.hivemq.persistence.cluster.address.Address;
-import com.hivemq.persistence.cluster.address.AddressRegistry;
-import com.hivemq.persistence.cluster.address.Record;
+import com.hivemq.cluster.address.Address;
+import com.hivemq.cluster.address.AddressRegistry;
+import com.hivemq.cluster.address.Record;
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.configuration.cache.CacheMode;

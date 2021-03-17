@@ -1,20 +1,18 @@
-package com.hivemq.persistence.cluster.rpc;
+package com.hivemq.cluster.provider;
 
 import com.hivemq.cluster.rpc.PublishServiceGrpc;
 import com.hivemq.cluster.rpc.QueuePersistenceServiceGrpc;
 import com.hivemq.cluster.rpc.SessionPersistenceServiceGrpc;
 import com.hivemq.cluster.rpc.SubscriptionPersistenceServiceGrpc;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
-import com.hivemq.persistence.cluster.ClusteringService;
-import io.grpc.Server;
-import io.grpc.netty.NettyServerBuilder;
+import com.hivemq.cluster.ClusteringService;
+import com.hivemq.cluster.rpc.GRPCServer;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
+import javax.inject.Provider;
 import java.io.IOException;
 
-@Singleton
-public class GRPCServer {
+public class GRPCServerProvider implements Provider<GRPCServer> {
     @NotNull
     private final ClusteringService clusteringService;
     @NotNull
@@ -25,10 +23,9 @@ public class GRPCServer {
     private final SubscriptionPersistenceServiceGrpc.SubscriptionPersistenceServiceImplBase subPersistenceService;
     @NotNull
     private final PublishServiceGrpc.PublishServiceImplBase publishService;
-    private Server server;
 
     @Inject
-    public GRPCServer(
+    public GRPCServerProvider(
             @NotNull final ClusteringService clusteringService,
             @NotNull final SessionPersistenceServiceGrpc.SessionPersistenceServiceImplBase sessionPersistenceService,
             @NotNull final QueuePersistenceServiceGrpc.QueuePersistenceServiceImplBase queuePersistenceService,
@@ -41,19 +38,23 @@ public class GRPCServer {
         this.publishService = publishService;
     }
 
-    public void open() throws IOException {
-        server = NettyServerBuilder
-                .forPort(clusteringService.getRPCPort())
-                .addService(sessionPersistenceService)
-                .addService(queuePersistenceService)
-                .addService(subPersistenceService)
-                .addService(publishService)
-                .build();
+    @Override
+    public GRPCServer get() {
+        try {
+            final GRPCServer server = new GRPCServer(
+                    clusteringService,
+                    sessionPersistenceService,
+                    queuePersistenceService,
+                    subPersistenceService,
+                    publishService
+            );
 
-        server.start();
-    }
+            server.open();
 
-    public void close() {
-        server.shutdown();
+            return server;
+        }
+        catch (final IOException ex) {
+            return null;
+        }
     }
 }
