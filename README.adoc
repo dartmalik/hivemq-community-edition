@@ -11,6 +11,8 @@ image:https://jitpack.io/v/hivemq/hivemq-community-edition.svg["JitPack", link="
 image:https://javadoc.io/badge2/com.hivemq/hivemq-community-edition-embedded/javadoc.svg["javadoc", link=https://javadoc.io/doc/com.hivemq/hivemq-community-edition-embedded]
 image:https://travis-ci.com/hivemq/hivemq-community-edition.svg?token=2JEoSXzFpviQH47MBPSm&branch=master["Build Status",link="https://travis-ci.com/hivemq/hivemq-community-edition"]
 
+**Note** This fork adds support for clustering hivemq broker instances.
+
 HiveMQ CE is a Java-based open source MQTT broker that fully supports MQTT 3.x and MQTT 5.
 
 HiveMQ CE is the foundation of the HiveMQ enterprise-connectivity and messaging platform and implements all MQTT features.
