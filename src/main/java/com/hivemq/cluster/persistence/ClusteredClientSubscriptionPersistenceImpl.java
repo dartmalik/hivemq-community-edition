@@ -24,6 +24,7 @@ import com.hivemq.bootstrap.ioc.lazysingleton.LazySingleton;
 import com.hivemq.cluster.ClusteringService;
 import com.hivemq.cluster.rpc.*;
 import com.hivemq.extension.sdk.api.annotations.NotNull;
+import com.hivemq.extension.sdk.api.annotations.Nullable;
 import com.hivemq.extensions.iteration.ChunkCursor;
 import com.hivemq.extensions.iteration.MultipleChunkResult;
 import com.hivemq.mqtt.message.subscribe.Topic;
@@ -45,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+@SuppressWarnings("UnstableApiUsage")
 @LazySingleton
 public class ClusteredClientSubscriptionPersistenceImpl
         extends SubscriptionPersistenceServiceGrpc.SubscriptionPersistenceServiceImplBase
@@ -236,7 +238,7 @@ public class ClusteredClientSubscriptionPersistenceImpl
 
         Futures.addCallback(removed, new FutureCallback<Void>() {
             @Override
-            public void onSuccess(final Void result) {
+            public void onSuccess(@Nullable final Void result) {
                 responseObserver.onNext(RemoveSubscriptionsResponse.newBuilder().build());
                 responseObserver.onCompleted();
             }
